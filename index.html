@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Egyszerű készletkezelő – Törzsadat + Bevét</title>
+  <title>Egyszerű készletkezelő – Törzsadat + Bevét + Vonalkód</title>
   <style>
     :root {
       --bg:#f8fafc;
@@ -14,7 +14,7 @@
       --accent:#0f172a;
       --ok:#10b981;
       --warn:#ef4444;
-      --backdrop:rgba(2,6,23,.5);
+      --backdrop:rgba(15,23,42,.6);
     }
     *{box-sizing:border-box}
     body{
@@ -121,6 +121,11 @@
       border-radius:12px;
       margin-bottom:12px;
     }
+    .error.info{
+      background:#ecfdf5;
+      border-color:#bbf7d0;
+      color:#065f46;
+    }
     .hide{display:none}
     .line-row{
       display:flex;
@@ -128,10 +133,10 @@
       align-items:center;
       flex-wrap:wrap;
     }
-    .line-product{flex:2 1 220px;min-width:180px;}
-    .line-qty{flex:0 0 90px;max-width:90px;}
-    .line-unit{flex:0 0 80px;max-width:80px;}
-    .line-note{flex:3 1 220px;min-width:160px;}
+    .line-product{flex:2 1 200px;min-width:160px;}
+    .line-qty{flex:0 0 80px;max-width:80px;}
+    .line-unit{flex:0 0 70px;max-width:70px;}
+    .line-note{flex:3 1 200px;min-width:160px;}
     footer{
       text-align:center;
       font-size:12px;
@@ -139,7 +144,56 @@
       margin:18px 0 8px;
     }
 
-    /* ===== MOBIL OPTIMALIZÁLÁS ===== */
+    /* Modálok */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background:var(--backdrop);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:50;
+    }
+    .modal{
+      background:#fff;
+      border-radius:16px;
+      border:1px solid var(--line);
+      max-width:480px;
+      width:100%;
+      box-shadow:0 12px 35px rgba(15,23,42,.35);
+      overflow:hidden;
+    }
+    .modal header{
+      padding:12px 16px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .modal h3{
+      margin:0;
+      font-size:18px;
+    }
+    .modal .content{
+      padding:14px 16px 16px;
+    }
+    .modal footer{
+      padding:10px 16px 14px;
+      border-top:1px solid var(--line);
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+    }
+    #scan-video{
+      width:100%;
+      max-height:260px;
+      border-radius:12px;
+      background:#020617;
+    }
+
+    /* MOBIL */
     @media (max-width:600px){
       .wrap { padding: 12px; }
       .tabs { gap: 4px; margin: 12px 0 18px; }
@@ -159,13 +213,14 @@
         flex:1 1 100%;
         max-width:100%;
       }
-      .line-row .btn { width:100%; margin-top:6px; }
+      .line-row .btn { width:100%; margin-top:4px; }
       table {
         font-size:13px;
         min-width:520px;
       }
       thead th, td { padding:8px; }
       .tablewrap { border-radius:10px; max-height:60vh; }
+      .modal{max-width:95%;}
     }
   </style>
 </head>
@@ -173,7 +228,7 @@
   <div class="wrap">
     <header>
       <h1>Törzsadat + Bevét rögzítő</h1>
-      <div class="tag">Firebase szinkron • csak bevét</div>
+      <div class="tag">Firebase szinkron • csak bevét • vonalkód olvasás</div>
     </header>
 
     <div class="tabs">
@@ -216,7 +271,7 @@
                 <th style="min-width:80px">Menny.</th>
                 <th style="min-width:80px">ME</th>
                 <th style="min-width:220px">Megjegyzés (soronként, opcionális)</th>
-                <th style="min-width:80px">Művelet</th>
+                <th style="min-width:120px">Művelet</th>
               </tr>
             </thead>
             <tbody id="tbody-in-rows"></tbody>
@@ -307,8 +362,8 @@
       <div class="card">
         <h2>Termékek</h2>
         <form id="form-prod">
-          <label>Cikkszám (opcionális)</label>
-          <input id="prod-sku" placeholder="Cikkszám" />
+          <label>Cikkszám / vonalkód (opcionális)</label>
+          <input id="prod-sku" placeholder="Cikkszám vagy vonalkód" />
           <label>Megnevezés</label>
           <input id="prod-name" placeholder="Megnevezés" required />
           <div class="grid grid-2">
@@ -340,8 +395,52 @@
     </section>
 
     <footer>
-      Mini kliens – csak törzsadat és bevét • <span id="stamp"></span>
+      Mini kliens – csak törzsadat és bevét (kamerás vonalkód olvasás) • <span id="stamp"></span>
     </footer>
+  </div>
+
+  <!-- Vonalkód / QR olvasó modál -->
+  <div id="scan-backdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="scan-title">
+      <header>
+        <h3 id="scan-title">Vonalkód / QR-kód beolvasása</h3>
+        <button id="scan-close" class="btn secondary small" type="button">Bezárás</button>
+      </header>
+      <div class="content">
+        <video id="scan-video" autoplay muted playsinline></video>
+        <p class="muted" style="margin-top:8px;font-size:12px;">
+          Irányítsd a telefon kameráját a vonalkódra vagy QR-kódra. Sikeres beolvasás után
+          a termék automatikusan kiválasztásra kerül. Ha a kód ismeretlen, új terméket hozhatsz létre.
+        </p>
+      </div>
+      <footer>
+        <button id="scan-cancel" class="btn ghost" type="button">Mégse</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Új termék modál (ismeretlen vonalkód esetén) -->
+  <div id="product-backdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="product-title">
+      <header>
+        <h3 id="product-title">Új termék a beolvasott kóddal</h3>
+      </header>
+      <div class="content">
+        <label>Beolvasott kód</label>
+        <input id="prod-modal-sku" readonly />
+        <label>Megnevezés</label>
+        <input id="prod-modal-name" placeholder="Pl.: Mosószer 5L" />
+        <label>Mértékegység</label>
+        <input id="prod-modal-unit" value="db" />
+        <p class="muted" style="font-size:12px;margin-top:8px;">
+          Mentés után a termék bekerül a törzsadatok közé, és rögtön kiválasztásra kerül a sorban.
+        </p>
+      </div>
+      <footer>
+        <button id="prod-modal-cancel" class="btn ghost" type="button">Mégse</button>
+        <button id="prod-modal-ok" class="btn" type="button">Mentés</button>
+      </footer>
+    </div>
   </div>
 
   <script>
@@ -349,16 +448,18 @@
       const $ = (sel) => document.querySelector(sel);
       const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-      window.showErr = function(msg){
+      window.showErr = function(msg, kind){
         const e = $('#err');
         if(!e) return;
         e.textContent = String(msg || 'Ismeretlen hiba');
-        e.classList.remove('hide');
+        e.classList.remove('hide','info');
+        if(kind === 'info') e.classList.add('info');
       };
       window.hideErr = function(){
         const e = $('#err');
         if(!e) return;
         e.classList.add('hide');
+        e.classList.remove('info');
       };
 
       const stampEl = document.getElementById('stamp');
@@ -380,6 +481,9 @@
       });
     })();
   </script>
+
+  <!-- ZXing (vonalkód/QR olvasó) -->
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
 
   <script type="module">
     import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -422,6 +526,10 @@
     const fmt = new Intl.NumberFormat('hu-HU', { maximumFractionDigits: 2 });
 
     // == Realtime szinkron ==
+    import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(()=>{
+      const { BrowserMultiFormatReader } = window.ZXing || {};
+    });
+
     onSnapshot(query(collection(db, COL_SUPPLIERS), orderBy('name')), (snap)=>{
       suppliers = snap.docs.map(d=>({id:d.id, ...d.data()}));
       renderSuppliers();
@@ -513,7 +621,8 @@
             <input class="li-qty line-qty" type="number" min="0.01" step="0.01" value="1" required />
             <input class="li-unit line-unit" />
             <input class="li-note line-note" placeholder="Megjegyzés (opcionális)" />
-            <button type="button" class="btn secondary li-del">Töröl</button>
+            <button type="button" class="btn ghost small li-scan">📷 Olvasás</button>
+            <button type="button" class="btn secondary small li-del">Töröl</button>
           </div>
         </td>`;
       inRowsTbody.appendChild(tr);
@@ -526,6 +635,12 @@
         tr.remove();
         updateSum();
       });
+
+      const scanBtn = tr.querySelector('.li-scan');
+      scanBtn.addEventListener('click', ()=>{
+        startScan(code => applyScanToRow(code, tr));
+      });
+
       updateSum();
     }
 
@@ -670,6 +785,122 @@
       });
     }
 
+    // == Vonalkód olvasás + új termék modál ==
+    const scanBackdrop = document.getElementById('scan-backdrop');
+    const scanVideo = document.getElementById('scan-video');
+    const scanClose = document.getElementById('scan-close');
+    const scanCancel = document.getElementById('scan-cancel');
+
+    let codeReader = null;
+    let activeScan = null;
+
+    async function startScan(onCode){
+      if(activeScan){ return; }
+      if(!window.ZXing || !window.ZXing.BrowserMultiFormatReader){
+        showErr('A vonalkód olvasó könyvtár nem töltődött be.');
+        return;
+      }
+      codeReader = new window.ZXing.BrowserMultiFormatReader();
+      scanBackdrop.style.display = 'flex';
+
+      activeScan = { onCode };
+
+      try{
+        await codeReader.decodeFromVideoDevice(null, 'scan-video', (result, err)=>{
+          if(result){
+            const text = result.getText();
+            stopScan();
+            const cb = activeScan?.onCode;
+            activeScan = null;
+            if(cb) cb(text);
+          }
+        });
+      }catch(e){
+        showErr('Nem sikerült elindítani a kamerát: ' + (e?.message||e));
+        stopScan();
+      }
+    }
+
+    function stopScan(){
+      try{
+        if(codeReader){
+          codeReader.reset();
+          codeReader = null;
+        }
+      }catch{}
+      scanBackdrop.style.display = 'none';
+      activeScan = null;
+    }
+
+    scanClose.addEventListener('click', stopScan);
+    scanCancel.addEventListener('click', stopScan);
+
+    async function applyScanToRow(code, tr){
+      if(!code) return;
+      const sel = tr.querySelector('.li-product');
+      const unitInput = tr.querySelector('.li-unit');
+      // Először keressünk meglévő terméket sku alapján
+      let p = products.find(p=>String(p.sku||'') === String(code));
+      if(p){
+        sel.value = p.id;
+        unitInput.value = p.unit || 'db';
+        return;
+      }
+      // Ha nincs, kérdezzük meg: új termék?
+      const res = await openProductModal(code);
+      if(!res) return;
+      try{
+        const ref = await addDoc(collection(db, COL_PRODUCTS), {
+          sku: code,
+          name: res.name,
+          unit: res.unit || 'db',
+          min: 0
+        });
+        sel.value = ref.id;
+        unitInput.value = res.unit || 'db';
+      }catch(e){
+        showErr('Új termék mentése sikertelen: ' + (e?.message||e));
+      }
+    }
+
+    const productBackdrop = document.getElementById('product-backdrop');
+    const prodModalSku = document.getElementById('prod-modal-sku');
+    const prodModalName = document.getElementById('prod-modal-name');
+    const prodModalUnit = document.getElementById('prod-modal-unit');
+    const prodModalOk = document.getElementById('prod-modal-ok');
+    const prodModalCancel = document.getElementById('prod-modal-cancel');
+
+    function openProductModal(sku){
+      prodModalSku.value = sku || '';
+      prodModalName.value = '';
+      prodModalUnit.value = 'db';
+      productBackdrop.style.display = 'flex';
+
+      return new Promise(resolve=>{
+        function close(res){
+          productBackdrop.style.display = 'none';
+          prodModalOk.removeEventListener('click', onOk);
+          prodModalCancel.removeEventListener('click', onCancel);
+          document.removeEventListener('keydown', onKey);
+          resolve(res);
+        }
+        function onOk(){
+          const name = prodModalName.value.trim() || sku || '';
+          const unit = prodModalUnit.value.trim() || 'db';
+          close({ name, unit });
+        }
+        function onCancel(){ close(null); }
+        function onKey(e){
+          if(e.key === 'Escape') onCancel();
+          if(e.key === 'Enter') onOk();
+        }
+        prodModalOk.addEventListener('click', onOk);
+        prodModalCancel.addEventListener('click', onCancel);
+        setTimeout(()=> document.addEventListener('keydown', onKey), 0);
+        setTimeout(()=> prodModalName.focus(), 50);
+      });
+    }
+
     // Helper függvények
     function getProduct(id){ return products.find(p=>p.id===id); }
     function esc(s){
@@ -684,8 +915,3 @@
   </script>
 </body>
 </html>
-"""
-
-out_path = Path("/mnt/data/torzs_bevet_mini.html")
-out_path.write_text(html, encoding="utf-8")
-out_path
