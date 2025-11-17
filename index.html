@@ -1,8 +1,6 @@
-<!DOCTYPE html>
-<html lang="hu">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<html lang="hu"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Egyszerű készletkezelő – Törzsadat + Bevét + Vonalkód</title>
   <style>
     :root {
@@ -137,6 +135,13 @@
     .line-qty{flex:0 0 80px;max-width:80px;}
     .line-unit{flex:0 0 70px;max-width:70px;}
     .line-note{flex:3 1 200px;min-width:160px;}
+    .row-highlight{
+      animation:flash 1.1s ease-out;
+    }
+    @keyframes flash{
+      0%{background:#fef3c7;}
+      100%{background:transparent;}
+    }
     footer{
       text-align:center;
       font-size:12px;
@@ -232,24 +237,24 @@
     </header>
 
     <div class="tabs">
-      <button class="tabbtn active" data-tab="bevet">Bevét</button>
-      <button class="tabbtn" data-tab="torzs">Törzsadatok</button>
+      <button class="tabbtn" data-tab="bevet">Bevét</button>
+      <button class="tabbtn active" data-tab="torzs">Törzsadatok</button>
     </div>
 
     <div id="err" class="error hide"></div>
 
     <!-- Bevét -->
-    <section id="tab-bevet">
+    <section id="tab-bevet" class="hide">
       <div class="card">
         <h2>Új bevét rögzítése</h2>
         <div class="grid grid-2">
           <div>
             <label>Beszállító</label>
-            <select id="in-supplier" required></select>
+            <select id="in-supplier" required=""></select>
           </div>
           <div>
             <label>Dátum</label>
-            <input type="date" id="in-date" required>
+            <input type="date" id="in-date" required="">
           </div>
         </div>
         <div style="margin-top:8px">
@@ -306,14 +311,14 @@
     </section>
 
     <!-- Törzsadatok -->
-    <section id="tab-torzs" class="hide">
+    <section id="tab-torzs" class="">
       <div class="card">
         <h2>Beszállítók</h2>
         <form id="form-sup">
           <label>Név</label>
-          <input id="sup-name" placeholder="Név" required />
+          <input id="sup-name" placeholder="Név" required="">
           <label>Megjegyzés</label>
-          <input id="sup-note" placeholder="Megjegyzés (opcionális)" />
+          <input id="sup-note" placeholder="Megjegyzés (opcionális)">
           <div class="row" style="margin-top:8px">
             <button class="btn" type="submit">Hozzáadás</button>
           </div>
@@ -339,9 +344,9 @@
         </p>
         <form id="form-cus">
           <label>Név</label>
-          <input id="cus-name" placeholder="Név" required />
+          <input id="cus-name" placeholder="Név" required="">
           <label>Megjegyzés</label>
-          <input id="cus-note" placeholder="Megjegyzés (opcionális)" />
+          <input id="cus-note" placeholder="Megjegyzés (opcionális)">
           <div class="row" style="margin-top:8px">
             <button class="btn" type="submit">Hozzáadás</button>
           </div>
@@ -363,21 +368,21 @@
         <h2>Termékek</h2>
         <form id="form-prod">
           <label>Cikkszám / vonalkód (opcionális)</label>
-          <input id="prod-sku" placeholder="Cikkszám vagy vonalkód" />
+          <input id="prod-sku" placeholder="Cikkszám vagy vonalkód">
           <div class="row" style="margin:4px 0 8px;">
             <button type="button" id="prod-scan" class="btn ghost small">📷 Kód beolvasása</button>
             <span class="muted" style="font-size:12px;">A beolvasott kód a fenti mezőbe kerül.</span>
           </div>
           <label>Megnevezés</label>
-          <input id="prod-name" placeholder="Megnevezés" required />
+          <input id="prod-name" placeholder="Megnevezés" required="">
           <div class="grid grid-2">
             <div>
               <label>Mértékegység</label>
-              <input id="prod-unit" value="db" />
+              <input id="prod-unit" value="db">
             </div>
             <div>
               <label>Min. készlet (informatív)</label>
-              <input id="prod-min" type="number" value="0" />
+              <input id="prod-min" type="number" value="0">
             </div>
           </div>
           <div class="row" style="margin-top:8px">
@@ -399,7 +404,7 @@
     </section>
 
     <footer>
-      Mini kliens – csak törzsadat és bevét (kamerás vonalkód olvasás) • <span id="stamp"></span>
+      Mini kliens – csak törzsadat és bevét (kamerás vonalkód olvasás) • <span id="stamp">2025-11-17 11:35:37</span>
     </footer>
   </div>
 
@@ -411,10 +416,10 @@
         <button id="scan-close" class="btn secondary small" type="button">Bezárás</button>
       </header>
       <div class="content">
-        <video id="scan-video" autoplay muted playsinline></video>
+        <video id="scan-video" autoplay="" muted="" playsinline=""></video>
         <p class="muted" style="margin-top:8px;font-size:12px;">
           Irányítsd a telefon kameráját a vonalkódra vagy QR-kódra. Sikeres beolvasás után
-          a termék automatikusan kiválasztásra kerül, vagy új terméket hozhatsz létre.
+          a kód megjelenik üzenetként, és ha van ilyen termék, automatikusan kitöltjük.
         </p>
       </div>
       <footer>
@@ -431,11 +436,11 @@
       </header>
       <div class="content">
         <label>Beolvasott kód</label>
-        <input id="prod-modal-sku" readonly />
+        <input id="prod-modal-sku" readonly="">
         <label>Megnevezés</label>
-        <input id="prod-modal-name" placeholder="Pl.: Mosószer 5L" />
+        <input id="prod-modal-name" placeholder="Pl.: Mosószer 5L">
         <label>Mértékegység</label>
-        <input id="prod-modal-unit" value="db" />
+        <input id="prod-modal-unit" value="db">
         <p class="muted" style="font-size:12px;margin-top:8px;">
           Mentés után a termék bekerül a törzsadatok közé, és rögtön kiválasztásra kerül a sorban.
         </p>
@@ -809,10 +814,16 @@
         await codeReader.decodeFromVideoDevice(null, 'scan-video', (result, err)=>{
           if(result){
             const text = result.getText();
+            // adjunk azonnali visszajelzést
+            showErr('Beolvasott kód: ' + text, 'info');
             stopScan();
-            const cb = activeScan?.onCode;
-            activeScan = null;
-            if(cb) cb(text);
+            try{
+              const cb = activeScan?.onCode;
+              activeScan = null;
+              if(cb) cb(text);
+            }catch(e){
+              showErr('A beolvasott kód feldolgozásánál hiba történt: ' + (e?.message||e));
+            }
           }
         });
       }catch(e){
@@ -844,6 +855,10 @@
       if(p){
         sel.value = p.id;
         unitInput.value = p.unit || 'db';
+        tr.classList.remove('row-highlight');
+        void tr.offsetWidth;
+        tr.classList.add('row-highlight');
+        tr.scrollIntoView({ behavior:'smooth', block:'center' });
         return;
       }
       // Ha nincs, kérdezzük meg: új termék?
@@ -858,6 +873,10 @@
         });
         sel.value = ref.id;
         unitInput.value = res.unit || 'db';
+        tr.classList.remove('row-highlight');
+        void tr.offsetWidth;
+        tr.classList.add('row-highlight');
+        tr.scrollIntoView({ behavior:'smooth', block:'center' });
       }catch(e){
         showErr('Új termék mentése sikertelen: ' + (e?.message||e));
       }
@@ -949,7 +968,7 @@ Mégse: csak a kód marad, új termékként viheted fel.`;
     // Helper függvények
     function getProduct(id){ return products.find(p=>p.id===id); }
     function esc(s){
-      return String(s||'').replace(/[&<>\"']/g, c=>({
+      return String(s||'').replace(/[&<>"']/g, c=>({
         "&":"&amp;",
         "<":"&lt;",
         ">":"&gt;",
@@ -958,5 +977,6 @@ Mégse: csak a kód marad, új termékként viheted fel.`;
     }
 
   </script>
-</body>
-</html>
+
+
+</body></html>
