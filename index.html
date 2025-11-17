@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+from pathlib import Path
+
+html = """<!DOCTYPE html>
 <html lang="hu">
 <head>
   <meta charset="utf-8" />
@@ -364,6 +366,10 @@
         <form id="form-prod">
           <label>Cikkszám / vonalkód (opcionális)</label>
           <input id="prod-sku" placeholder="Cikkszám vagy vonalkód" />
+          <div class="row" style="margin:4px 0 8px;">
+            <button type="button" id="prod-scan" class="btn ghost small">📷 Kód beolvasása</button>
+            <span class="muted" style="font-size:12px;">A beolvasott kód a fenti mezőbe kerül.</span>
+          </div>
           <label>Megnevezés</label>
           <input id="prod-name" placeholder="Megnevezés" required />
           <div class="grid grid-2">
@@ -410,7 +416,7 @@
         <video id="scan-video" autoplay muted playsinline></video>
         <p class="muted" style="margin-top:8px;font-size:12px;">
           Irányítsd a telefon kameráját a vonalkódra vagy QR-kódra. Sikeres beolvasás után
-          a termék automatikusan kiválasztásra kerül. Ha a kód ismeretlen, új terméket hozhatsz létre.
+          a termék automatikusan kiválasztásra kerül, vagy új terméket hozhatsz létre.
         </p>
       </div>
       <footer>
@@ -419,7 +425,7 @@
     </div>
   </div>
 
-  <!-- Új termék modál (ismeretlen vonalkód esetén) -->
+  <!-- Új termék modál (ismeretlen vonalkód esetén, bevét sorból) -->
   <div id="product-backdrop" class="modal-backdrop" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="product-title">
       <header>
@@ -526,10 +532,6 @@
     const fmt = new Intl.NumberFormat('hu-HU', { maximumFractionDigits: 2 });
 
     // == Realtime szinkron ==
-    import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(()=>{
-      const { BrowserMultiFormatReader } = window.ZXing || {};
-    });
-
     onSnapshot(query(collection(db, COL_SUPPLIERS), orderBy('name')), (snap)=>{
       suppliers = snap.docs.map(d=>({id:d.id, ...d.data()}));
       renderSuppliers();
@@ -901,6 +903,51 @@
       });
     }
 
+    // === Törzsadat fül vonalkód olvasás (3-as opció) ===
+    const prodScanBtn = document.getElementById('prod-scan');
+    if(prodScanBtn){
+      prodScanBtn.addEventListener('click', ()=>{
+        startScan(handleProductScan);
+      });
+    }
+
+    async function handleProductScan(code){
+      if(!code) return;
+      const skuInput = document.getElementById('prod-sku');
+      const nameInput = document.getElementById('prod-name');
+      const unitInput = document.getElementById('prod-unit');
+
+      skuInput.value = code;
+
+      const existing = products.find(p=>String(p.sku||'') === String(code));
+      if(existing){
+        const msg =
+`Már létezik termék ezzel a kóddal:
+
+${existing.name} (${existing.unit || 'db'})
+
+OK: betöltöm az adatait (szerkesztheted is)
+Mégse: csak a kód marad, új termékként viheted fel.`;
+        if(confirm(msg)){
+          nameInput.value = existing.name || '';
+          unitInput.value = existing.unit || 'db';
+          nameInput.focus();
+          return;
+        } else {
+          // Új termék: csak a kód marad, többi üresen
+          nameInput.value = '';
+          unitInput.value = 'db';
+          nameInput.focus();
+          return;
+        }
+      } else {
+        // Új termék teljesen a kóddal
+        nameInput.value = '';
+        unitInput.value = 'db';
+        nameInput.focus();
+      }
+    }
+
     // Helper függvények
     function getProduct(id){ return products.find(p=>p.id===id); }
     function esc(s){
@@ -915,3 +962,8 @@
   </script>
 </body>
 </html>
+"""
+
+out_path = Path("/mnt/data/torzs_bevet_mini_scan_torzsgomb.html")
+out_path.write_text(html, encoding="utf-8")
+out_path
