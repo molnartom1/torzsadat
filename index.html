@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Egyszerű készletkezelő – Törzsadat + Bevét + Vonalkód</title>
+  <title>Egyszerű készletkezelő – Törzsadat + Bevét + Vonalkód (MINI)</title>
   <style>
     :root {
       --bg:#0b1220;
@@ -346,7 +346,7 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>Törzsadat + Bevét rögzítő</h1>
+      <h1>Törzsadat + Bevét rögzítő (MINI)</h1>
       <div class="tag">Firebase szinkron • csak bevét • vonalkód olvasás</div>
     </header>
 
@@ -537,7 +537,7 @@
         </div>
         <p class="scan-hint">
           <span class="scan-hint-icon">i</span>
-          <span>Irányítsd a kamerát a kódra úgy, hogy a világos kereten belül legyen. Sikeres beolvasás után a kód megjelenik felül üzenetként, és ha van ilyen termék, automatikusan kitöltjük.</span>
+          <span>Irányítsd a kamerát a kódra úgy, hogy a világos kereten belül legyen. Sikeres beolvasás után a kód megjelenik felül üzenetként, és ha van ilyen termék, automatikusan kitöltjük / vagy rákérdezünk, mit szeretnél.</span>
         </p>
       </div>
       <footer>
@@ -709,13 +709,45 @@
       }
     });
 
+    // TERMÉK ŰRLAP – C LOGIKA: ha van már ilyen SKU, rákérdez
     document.getElementById('form-prod').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const sku  = document.getElementById('prod-sku').value.trim();
-      const name = document.getElementById('prod-name').value.trim();
-      const unit = document.getElementById('prod-unit').value.trim() || 'db';
-      const min  = Number(document.getElementById('prod-min').value||0);
+      const skuInput  = document.getElementById('prod-sku');
+      const nameInput = document.getElementById('prod-name');
+      const unitInput = document.getElementById('prod-unit');
+      const minInput  = document.getElementById('prod-min');
+
+      const sku  = skuInput.value.trim();
+      const name = nameInput.value.trim();
+      const unit = unitInput.value.trim() || 'db';
+      const min  = Number(minInput.value||0);
+
       if(!name) return showErr('Adj meg megnevezést a terméknek!');
+
+      // C LOGIKA – ha már létezik ilyen SKU, kérdezzük meg
+      if (sku) {
+        const existing = products.find(p => String(p.sku || '') === String(sku));
+        if (existing) {
+          const msg =
+`Már létezik termék ezzel a kóddal:
+
+${existing.name} (${existing.unit || 'db'})
+
+OK: betöltöm az adatait (szerkesztheted is)
+Mégse: új termékként veszem fel ugyanazzal a kóddal.`;
+          if (confirm(msg)) {
+            // Meglévő adatok betöltése szerkesztésre
+            skuInput.value  = existing.sku || '';
+            nameInput.value = existing.name || '';
+            unitInput.value = existing.unit || 'db';
+            minInput.value  = existing.min ?? 0;
+            nameInput.focus();
+            return; // NINCS új addDoc, csak betöltés
+          }
+          // ha Mégse → engedjük, hogy új termékként felvigye ugyanazzal a kóddal
+        }
+      }
+
       try{
         await addDoc(collection(db, COL_PRODUCTS), {
           sku, name, unit, min: isNaN(min)?0:min
@@ -911,7 +943,7 @@
       });
     }
 
-    // == Vonalkód olvasás (egyszerű callback rendszerrel) ==
+    // == Vonalkód olvasás ==
     const scanBackdrop = document.getElementById('scan-backdrop');
     const scanClose = document.getElementById('scan-close');
     const scanCancel = document.getElementById('scan-cancel');
@@ -1031,7 +1063,7 @@
       });
     }
 
-    // === Törzsadat fül vonalkód olvasás (3-as opció) ===
+    // === Törzsadat fül vonalkód olvasás ===
     const prodScanBtn = document.getElementById('prod-scan');
     if(prodScanBtn){
       prodScanBtn.addEventListener('click', ()=>{
@@ -1041,7 +1073,7 @@
 
     async function handleProductScan(code){
       if(!code) return;
-      const skuInput = document.getElementById('prod-sku');
+      const skuInput  = document.getElementById('prod-sku');
       const nameInput = document.getElementById('prod-name');
       const unitInput = document.getElementById('prod-unit');
 
@@ -1077,7 +1109,7 @@ Mégse: csak a kód marad, új termékként viheted fel.`;
     // Helper függvények
     function getProduct(id){ return products.find(p=>p.id===id); }
     function esc(s){
-      return String(s||'').replace(/[&<>"']/g, c=>({
+      return String(s||'').replace(/[&<>\"']/g, c=>({
         "&":"&amp;",
         "<":"&lt;",
         ">":"&gt;",
