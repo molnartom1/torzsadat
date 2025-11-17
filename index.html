@@ -1,6 +1,4 @@
-from pathlib import Path
-
-html = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="hu">
 <head>
   <meta charset="utf-8" />
@@ -962,8 +960,3 @@ Mégse: csak a kód marad, új termékként viheted fel.`;
   </script>
 </body>
 </html>
-"""
-
-out_path = Path("/mnt/data/torzs_bevet_mini_scan_torzsgomb.html")
-out_path.write_text(html, encoding="utf-8")
-out_path
